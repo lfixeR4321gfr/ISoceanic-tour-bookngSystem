@@ -246,10 +246,10 @@ const styles = {
     textAlign: "center",
     padding: "40px",
     fontSize: "18px",
-    color: "#666",
+    color: "#1161f5",
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#776074",
     borderRadius: "12px",
     boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
     overflow: "hidden",
