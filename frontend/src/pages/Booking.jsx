@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/api";
 
 function Booking() {
   const { id } = useParams();
@@ -20,7 +21,7 @@ function Booking() {
 
   // Fetch tour details
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/tours/")
+    fetch(apiUrl("/api/tours/"))
       .then((res) => res.json())
       .then((data) => {
         const selectedTour = data.find(t => t.id === parseInt(id));
@@ -63,7 +64,7 @@ function Booking() {
       return;
     }
 
-    fetch("http://127.0.0.1:8000/api/bookings/", {
+    fetch(apiUrl("/api/bookings/"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

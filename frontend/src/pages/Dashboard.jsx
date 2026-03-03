@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/api";
 
 function Dashboard() {
   const [bookings, setBookings] = useState([]);
@@ -15,7 +16,7 @@ function Dashboard() {
       return;
     }
 
-    fetch("http://127.0.0.1:8000/api/my-bookings/", {
+    fetch(apiUrl("/api/my-bookings/"), {
       headers: {
         Authorization: `Token ${token}`,
       },

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Tours.css";
+import { apiUrl } from "../config/api";
 
 function Tours() {
   const [tours, setTours] = useState([]);
@@ -16,7 +17,7 @@ function Tours() {
       return;
     }
 
-    fetch("http://127.0.0.1:8000/api/tours/")
+    fetch(apiUrl("/api/tours/"))
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch tours");

@@ -186,6 +186,12 @@ else:
         for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
         if origin.strip()
     ]
+    CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.vercel\.app$"]
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip()
+        for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
 
 # HTTPS/security settings for production deployments.
 if not DEBUG:

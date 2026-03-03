@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/api";
 
 function Admin() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ function Admin() {
     const token = localStorage.getItem("token");
     
     try {
-      const toursRes = await fetch("http://127.0.0.1:8000/api/admin/tours/", {
+      const toursRes = await fetch(apiUrl("/api/admin/tours/"), {
         headers: {
           "Authorization": `Token ${token}`,
         },
@@ -48,7 +49,7 @@ function Admin() {
       const toursData = await toursRes.json();
       setTours(toursData);
 
-      const bookingsRes = await fetch("http://127.0.0.1:8000/api/admin/bookings/", {
+      const bookingsRes = await fetch(apiUrl("/api/admin/bookings/"), {
         headers: {
           "Authorization": `Token ${token}`,
         },
@@ -108,7 +109,7 @@ function Admin() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/admin/tours/${editingTour}/`,
+        apiUrl(`/api/admin/tours/${editingTour}/`),
         {
           method: "PUT",
           headers: {
