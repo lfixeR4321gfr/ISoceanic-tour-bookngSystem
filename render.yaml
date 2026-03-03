@@ -8,6 +8,6 @@ services:
     startCommand: "cd backend && gunicorn bookingproject.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
-        value: "3.14"
+        value: "3.14.0"
       - key: DJANGO_SETTINGS_MODULE
         value: "bookingproject.settings"
