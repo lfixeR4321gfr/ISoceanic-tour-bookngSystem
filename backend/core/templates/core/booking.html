@@ -1,0 +1,26 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Tour</title>
+</head>
+<body>
+
+<h2>Book: {{ tour.name }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    
+    <button type="submit">Confirm Booking</button>  
+    <a href="{% url 'available_tours' %}">⬅ Back to Tours</a>
+    
+</form>
+
+<br>
+
+<a href="{% url 'home' %}">⬅ Home</a>
+
+</body>
+</html>

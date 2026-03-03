@@ -1,0 +1,13 @@
+asgiref
+dj-database-url
+Django
+django-cors-headers
+djangorestframework
+gunicorn
+packaging
+pillow
+psycopg2-binary
+python-dotenv
+sqlparse
+tzdata
+whitenoise

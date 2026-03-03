@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Available Tours</title>
+</head>
+<body>
+
+<h2 style="color:green;">Available Tours</h2>
+
+{% if tours %}
+    {% for tour in tours %}
+        <div style="border:1px solid #31106e; padding:10px; margin:10px;">
+            <h3>{{ tour.name }}</h3>
+            <p>{{ tour.description }}</p>
+            <p>Price: {{ tour.price }}</p>
+            <p>Slots Available: {{ tour.available_slots }}</p>
+
+            <!-- LINK MOJA SAHIHI TU -->
+            <a href="{% url 'book_tour' tour.id %}">
+                <button style="color:green">Book Tour</button>
+                <a href="{% url 'home'%}">/ OR -Back home--</a>
+            </a>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>Sorry no tours available at this moment.</p>
+{% endif %}
+
+</body>
+</html>

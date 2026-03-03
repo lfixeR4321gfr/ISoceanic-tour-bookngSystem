@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Client Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+        }
+
+        .register-box {
+            width: 400px;
+            margin: 50px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #1E90FF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #0b5ed7;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="register-box">
+    <h2>Client Registration</h2>
+
+    <!-- Show form errors -->
+    {% if form.errors %}
+        {% for field in form %}
+            {% for error in field.errors %}
+                <p class="error">{{ error }}</p>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <p class="error">{{ error }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <!-- Render each field manually for better placeholder display -->
+        <input type="text" name="username" placeholder="Username" value="{{ form.username.value|default:'' }}" required>
+        <input type="text" name="first_name" placeholder="First Name" value="{{ form.first_name.value|default:'' }}" required>
+        <input type="text" name="last_name" placeholder="Last Name" value="{{ form.last_name.value|default:'' }}" required>
+        <input type="email" name="email" placeholder="Email" value="{{ form.email.value|default:'' }}" required>
+        <input type="text" name="nationality" placeholder="Nationality" value="{{ form.nationality.value|default:'' }}" required>
+        <input type="password" name="password1" placeholder="Password" required>
+        <input type="password" name="password2" placeholder="Confirm Password" required>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <div class="login-link">
+        <p>Already have an account?
+            <a href="{% url 'login' %}">Login here</a>
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>

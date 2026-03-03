@@ -2,14 +2,20 @@ services:
   - type: web
     name: bookingproject
     runtime: python
+    rootDir: backend
     region: oregon
     plan: free
-    buildCommand: "cd backend && pip install --no-cache-dir -r requirements.txt"
-    startCommand: "cd backend && gunicorn bookingproject.wsgi:application"
+    buildCommand: "pip install --no-cache-dir -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "python manage.py migrate --noinput && gunicorn bookingproject.wsgi:application"
+    healthCheckPath: /health/
     envVars:
       - key: PYTHON_VERSION
-        value: "3.14.0"
+        value: "3.12.8"
+      - key: SECRET_KEY
+        generateValue: true
       - key: DJANGO_SETTINGS_MODULE
         value: "bookingproject.settings"
-      - key: POETRY_VERSION
-        value: ""
+      - key: DEBUG
+        value: "False"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

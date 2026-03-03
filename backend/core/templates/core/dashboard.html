@@ -1,0 +1,28 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Dashboard</title>
+</head>
+<body>
+
+<h2 style="color:green;">My Bookings</h2>
+
+{% if bookings %}
+    {% for booking in bookings %}
+        <div style="border:1px solid #9fbb8d; padding:10px; margin:10px;">
+            <p><strong>Tour:</strong> {{ booking.tour.name }}</p>
+            <p><strong>People:</strong> {{ booking.number_of_people }}</p>
+            <p><strong>Date:</strong> {{ booking.created_at }}</p>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>You have no bookings yet.</p>
+{% endif %}
+
+<a href="{% url 'available_tours' %}">Back to Tours  OR</a>
+<a href="{% url 'home' %}">Back Home</a>
+
+</body>
+</html>
