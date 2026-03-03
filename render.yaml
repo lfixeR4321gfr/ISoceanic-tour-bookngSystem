@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: bookingproject
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && gunicorn bookingproject.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14"
+      - key: DJANGO_SETTINGS_MODULE
+        value: "bookingproject.settings"
