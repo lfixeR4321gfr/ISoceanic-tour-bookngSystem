@@ -181,9 +181,10 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOW_ALL_ORIGINS = False
+    default_frontend_origins = "https://i-soceanic-tour-bookng-system-j3sh.vercel.app"
     CORS_ALLOWED_ORIGINS = [
         origin.strip()
-        for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+        for origin in os.environ.get("CORS_ALLOWED_ORIGINS", default_frontend_origins).split(",")
         if origin.strip()
     ]
     CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.vercel\.app$"]
