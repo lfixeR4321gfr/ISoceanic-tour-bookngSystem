@@ -11,6 +11,14 @@ from .forms import UserRegisterForm, BookingForm
 from .models import Tour, Booking
 import json
 
+def with_cors(response, request):
+    origin = request.headers.get("Origin", "*")
+    response["Access-Control-Allow-Origin"] = origin
+    response["Vary"] = "Origin"
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
 
 # Helper function to authenticate using token
 def get_user_from_token(request):
@@ -117,11 +125,14 @@ def dashboard(request):
 @csrf_exempt
 def api_register(request):
     """API endpoint for user registration."""
+    if request.method == "OPTIONS":
+        return with_cors(JsonResponse({}, status=200), request)
+
     if request.method == "POST":
         try:
             data = json.loads(request.body)
         except:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
         
         username = data.get("username")
         password = data.get("password")
@@ -130,10 +141,10 @@ def api_register(request):
         email = data.get("email", "")
         
         if not username or not password:
-            return JsonResponse({"error": "Username and password required"}, status=400)
+            return with_cors(JsonResponse({"error": "Username and password required"}, status=400), request)
         
         if User.objects.filter(username=username).exists():
-            return JsonResponse({"error": "Username already exists"}, status=400)
+            return with_cors(JsonResponse({"error": "Username already exists"}, status=400), request)
         
         user = User.objects.create_user(
             username=username,
@@ -143,19 +154,22 @@ def api_register(request):
             email=email
         )
         
-        return JsonResponse({"message": "Registration successful", "user_id": user.id})
+        return with_cors(JsonResponse({"message": "Registration successful", "user_id": user.id}), request)
     
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 @csrf_exempt
 def api_login(request):
     """API endpoint for user login with token authentication."""
+    if request.method == "OPTIONS":
+        return with_cors(JsonResponse({}, status=200), request)
+
     if request.method == "POST":
         try:
             data = json.loads(request.body)
         except:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
         
         username = data.get("username")
         password = data.get("password")
@@ -165,17 +179,17 @@ def api_login(request):
         if user:
             from rest_framework.authtoken.models import Token
             token, _ = Token.objects.get_or_create(user=user)
-            return JsonResponse({
+            return with_cors(JsonResponse({
                 "message": "Login successful",
                 "token": token.key,
                 "user_id": user.id,
                 "username": user.username,
                 "is_staff": user.is_staff
-            })
+            }), request)
         else:
-            return JsonResponse({"error": "Invalid credentials"}, status=400)
+            return with_cors(JsonResponse({"error": "Invalid credentials"}, status=400), request)
     
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 def api_tours(request):
