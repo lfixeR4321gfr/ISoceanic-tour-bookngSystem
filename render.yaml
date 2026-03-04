@@ -6,7 +6,7 @@ services:
     region: oregon
     plan: free
     buildCommand: "pip install --no-cache-dir -r requirements.txt && python manage.py collectstatic --noinput"
-    startCommand: "python manage.py migrate --noinput && gunicorn bookingproject.wsgi:application"
+    startCommand: "gunicorn bookingproject.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
     healthCheckPath: /health/
     envVars:
       - key: PYTHON_VERSION
