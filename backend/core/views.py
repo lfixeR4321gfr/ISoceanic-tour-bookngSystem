@@ -19,6 +19,20 @@ from .serializers import (
 import json
 
 
+def _with_cors(response, request):
+    origin = request.headers.get("Origin", "")
+    if origin and (
+        origin.startswith("http://localhost")
+        or origin.startswith("http://127.0.0.1")
+        or origin.endswith(".vercel.app")
+    ):
+        response["Access-Control-Allow-Origin"] = origin
+        response["Vary"] = "Origin"
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
+
 # Helper function to authenticate using token
 def get_user_from_token(request):
     from rest_framework.authtoken.models import Token
@@ -124,40 +138,49 @@ def dashboard(request):
 @csrf_exempt
 def api_register(request):
     """API endpoint for user registration."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     if request.method == "POST":
         try:
             data = json.loads(request.body or "{}")
         except Exception:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return _with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
 
         serializer = RegisterSerializer(data=data)
         if not serializer.is_valid():
-            return JsonResponse({"error": serializer.errors}, status=400)
+            return _with_cors(JsonResponse({"error": serializer.errors}, status=400), request)
 
         user = serializer.save()
-        return JsonResponse({"message": "Registration successful", "user_id": user.id}, status=201)
+        return _with_cors(
+            JsonResponse({"message": "Registration successful", "user_id": user.id}, status=201),
+            request,
+        )
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 @csrf_exempt
 def api_login(request):
     """API endpoint for user login with token authentication."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     if request.method == "POST":
         try:
             data = json.loads(request.body or "{}")
         except Exception:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return _with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
 
         serializer = LoginSerializer(data=data)
         if not serializer.is_valid():
-            return JsonResponse({"error": serializer.errors}, status=400)
+            return _with_cors(JsonResponse({"error": serializer.errors}, status=400), request)
 
         user = serializer.validated_data["user"]
         from rest_framework.authtoken.models import Token
 
         token, _ = Token.objects.get_or_create(user=user)
-        return JsonResponse(
+        return _with_cors(JsonResponse(
             {
                 "message": "Login successful",
                 "token": token.key,
@@ -165,9 +188,9 @@ def api_login(request):
                 "username": user.username,
                 "is_staff": user.is_staff,
             }
-        )
+        ), request)
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 def api_tours(request):
@@ -180,19 +203,24 @@ def api_tours(request):
 @csrf_exempt
 def api_bookings(request):
     """API endpoint to create a new booking with DRF token authentication."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication credentials were not provided"}, status=401)
+        return _with_cors(
+            JsonResponse({"error": "Authentication credentials were not provided"}, status=401), request
+        )
     
     if request.method == "POST":
         try:
             data = json.loads(request.body or "{}")
         except Exception:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            return _with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
 
         serializer = BookingCreateSerializer(data=data)
         if not serializer.is_valid():
-            return JsonResponse({"error": serializer.errors}, status=400)
+            return _with_cors(JsonResponse({"error": serializer.errors}, status=400), request)
 
         validated = serializer.validated_data
         tour_id = validated["tour_id"]
@@ -201,10 +229,10 @@ def api_bookings(request):
         try:
             tour = Tour.objects.get(id=tour_id)
         except Tour.DoesNotExist:
-            return JsonResponse({"error": "Tour not found"}, status=404)
+            return _with_cors(JsonResponse({"error": "Tour not found"}, status=404), request)
 
         if number_of_people > tour.available_slots:
-            return JsonResponse({"error": "Not enough available slots"}, status=400)
+            return _with_cors(JsonResponse({"error": "Not enough available slots"}, status=400), request)
 
         booking = Booking.objects.create(
             client=user,
@@ -219,20 +247,27 @@ def api_bookings(request):
         tour.available_slots -= number_of_people
         tour.save()
 
-        return JsonResponse({"message": "Booking successful", "booking_id": booking.id}, status=201)
+        return _with_cors(
+            JsonResponse({"message": "Booking successful", "booking_id": booking.id}, status=201), request
+        )
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 def api_my_bookings(request):
     """API endpoint to get user's bookings with DRF token authentication."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     user = get_user_from_token(request)
     if not user:
-        return JsonResponse({"error": "Authentication credentials were not provided"}, status=401)
+        return _with_cors(
+            JsonResponse({"error": "Authentication credentials were not provided"}, status=401), request
+        )
     
     bookings = Booking.objects.filter(client=user).select_related("tour")
     serializer = BookingSerializer(bookings, many=True)
-    return JsonResponse(serializer.data, safe=False)
+    return _with_cors(JsonResponse(serializer.data, safe=False), request)
 
 
 # ===============================
