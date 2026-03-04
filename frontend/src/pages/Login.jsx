@@ -3,6 +3,21 @@ import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { apiUrl } from "../config/api";
 
+function formatApiError(errorValue, fallbackMessage) {
+  if (!errorValue) return fallbackMessage;
+  if (typeof errorValue === "string") return errorValue;
+  if (Array.isArray(errorValue)) return errorValue.join(", ");
+  if (typeof errorValue === "object") {
+    const messages = Object.entries(errorValue).map(([field, value]) => {
+      if (Array.isArray(value)) return `${field}: ${value.join(", ")}`;
+      if (typeof value === "string") return `${field}: ${value}`;
+      return `${field}: ${JSON.stringify(value)}`;
+    });
+    return messages.join(" | ");
+  }
+  return fallbackMessage;
+}
+
 function Login() {
   const navigate = useNavigate();
 
@@ -46,7 +61,7 @@ function Login() {
       }
 
       if (!response.ok) {
-        setError(data.error || `Login failed (${response.status})`);
+        setError(formatApiError(data.error, `Login failed (${response.status})`));
         return;
       }
 

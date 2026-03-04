@@ -3,6 +3,21 @@ import { useNavigate } from "react-router-dom";
 import "./Register.css";
 import { apiUrl } from "../config/api";
 
+function formatApiError(errorValue, fallbackMessage) {
+  if (!errorValue) return fallbackMessage;
+  if (typeof errorValue === "string") return errorValue;
+  if (Array.isArray(errorValue)) return errorValue.join(", ");
+  if (typeof errorValue === "object") {
+    const messages = Object.entries(errorValue).map(([field, value]) => {
+      if (Array.isArray(value)) return `${field}: ${value.join(", ")}`;
+      if (typeof value === "string") return `${field}: ${value}`;
+      return `${field}: ${JSON.stringify(value)}`;
+    });
+    return messages.join(" | ");
+  }
+  return fallbackMessage;
+}
+
 function Register() {
   const navigate = useNavigate();
 
@@ -56,7 +71,7 @@ function Register() {
       }
 
       if (!response.ok) {
-        setError(data.error || "Registration failed");
+        setError(formatApiError(data.error, "Registration failed"));
       } else {
         alert("Registration successful! Please login.");
         navigate("/login");
