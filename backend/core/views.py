@@ -274,6 +274,7 @@ def api_my_bookings(request):
 # ADMIN API VIEWS
 # ===============================
 
+@csrf_exempt
 def api_admin_tours(request):
     """API endpoint to list/create tours (admin view)."""
     if request.method == "OPTIONS":
@@ -340,6 +341,7 @@ def api_admin_tours(request):
     return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
+@csrf_exempt
 def api_admin_tour_detail(request, tour_id):
     """API endpoint to get/update a single tour (admin view)."""
     if request.method == "OPTIONS":
@@ -407,6 +409,7 @@ def api_admin_tour_detail(request, tour_id):
     return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
+@csrf_exempt
 def api_admin_bookings(request):
     """API endpoint to get all bookings (admin view)."""
     if request.method == "OPTIONS":
@@ -436,6 +439,7 @@ def api_admin_bookings(request):
     return _with_cors(JsonResponse(data, safe=False), request)
 
 
+@csrf_exempt
 def api_admin_booking_detail(request, booking_id):
     """API endpoint to get/delete booking (admin view)."""
     if request.method == "OPTIONS":
