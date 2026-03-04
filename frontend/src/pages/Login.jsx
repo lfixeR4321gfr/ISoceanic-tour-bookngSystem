@@ -77,7 +77,7 @@ function Login() {
       window.dispatchEvent(new Event("authChange"));
 
       alert("Login successful!");
-      navigate("/tours");
+      navigate(data.is_staff ? "/admin" : "/tours");
 
     } catch (err) {
       setError(`Server error: ${err.message || "Try again."}`);
