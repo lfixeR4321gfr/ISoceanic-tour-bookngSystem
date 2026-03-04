@@ -5,7 +5,7 @@ services:
     rootDir: backend
     region: oregon
     plan: free
-    buildCommand: "pip install --no-cache-dir -r requirements.txt && python manage.py collectstatic --noinput"
+    buildCommand: "pip install --no-cache-dir -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
     startCommand: "gunicorn bookingproject.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
     healthCheckPath: /health/
     envVars:
