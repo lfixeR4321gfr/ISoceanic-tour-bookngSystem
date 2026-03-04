@@ -13,4 +13,5 @@ urlpatterns = [
     path('admin/tours/', views.api_admin_tours, name='api_admin_tours'),
     path('admin/tours/<int:tour_id>/', views.api_admin_tour_detail, name='api_admin_tour_detail'),
     path('admin/bookings/', views.api_admin_bookings, name='api_admin_bookings'),
+    path('admin/bookings/<int:booking_id>/', views.api_admin_booking_detail, name='api_admin_booking_detail'),
 ]

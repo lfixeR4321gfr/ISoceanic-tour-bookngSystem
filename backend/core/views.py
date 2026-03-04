@@ -275,55 +275,105 @@ def api_my_bookings(request):
 # ===============================
 
 def api_admin_tours(request):
-    """API endpoint to get all tours (admin view)."""
+    """API endpoint to list/create tours (admin view)."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     user = get_user_from_token(request)
     if not user or not user.is_staff:
-        return JsonResponse({"error": "Admin access required"}, status=403)
-    
-    tours = Tour.objects.all()
-    data = []
-    for tour in tours:
-        data.append({
-            "id": tour.id,
-            "name": tour.name,
-            "description": tour.description,
-            "price": str(tour.price),
-            "duration_days": tour.duration_days,
-            "available_slots": tour.available_slots,
-            "tour_date": str(tour.tour_date) if tour.tour_date else None,
-            "tour_time": str(tour.tour_time) if tour.tour_time else None,
-        })
-    return JsonResponse(data, safe=False)
+        return _with_cors(JsonResponse({"error": "Admin access required"}, status=403), request)
+
+    if request.method == "GET":
+        tours = Tour.objects.all()
+        data = []
+        for tour in tours:
+            data.append({
+                "id": tour.id,
+                "name": tour.name,
+                "description": tour.description,
+                "price": str(tour.price),
+                "duration_days": tour.duration_days,
+                "available_slots": tour.available_slots,
+                "tour_date": str(tour.tour_date) if tour.tour_date else None,
+                "tour_time": str(tour.tour_time) if tour.tour_time else None,
+            })
+        return _with_cors(JsonResponse(data, safe=False), request)
+
+    if request.method == "POST":
+        try:
+            payload = json.loads(request.body or "{}")
+        except Exception:
+            return _with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
+
+        required_fields = ["name", "price", "duration_days", "available_slots"]
+        missing_fields = [field for field in required_fields if payload.get(field) in ("", None)]
+        if missing_fields:
+            return _with_cors(
+                JsonResponse({"error": f"Missing required fields: {', '.join(missing_fields)}"}, status=400),
+                request,
+            )
+
+        tour = Tour.objects.create(
+            name=payload.get("name"),
+            description=payload.get("description", ""),
+            price=payload.get("price"),
+            duration_days=payload.get("duration_days"),
+            available_slots=payload.get("available_slots"),
+            tour_date=payload.get("tour_date") if payload.get("tour_date") else Tour._meta.get_field("tour_date").get_default(),
+            tour_time=payload.get("tour_time") if payload.get("tour_time") else Tour._meta.get_field("tour_time").get_default(),
+        )
+        return _with_cors(
+            JsonResponse(
+                {
+                    "message": "Tour created successfully",
+                    "tour": {
+                        "id": tour.id,
+                        "name": tour.name,
+                        "price": str(tour.price),
+                    },
+                },
+                status=201,
+            ),
+            request,
+        )
+
+    return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 def api_admin_tour_detail(request, tour_id):
     """API endpoint to get/update a single tour (admin view)."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     user = get_user_from_token(request)
     if not user or not user.is_staff:
-        return JsonResponse({"error": "Admin access required"}, status=403)
+        return _with_cors(JsonResponse({"error": "Admin access required"}, status=403), request)
     
     try:
         tour = Tour.objects.get(id=tour_id)
     except Tour.DoesNotExist:
-        return JsonResponse({"error": "Tour not found"}, status=404)
+        return _with_cors(JsonResponse({"error": "Tour not found"}, status=404), request)
     
     if request.method == "GET":
-        return JsonResponse({
-            "id": tour.id,
-            "name": tour.name,
-            "description": tour.description,
-            "price": str(tour.price),
-            "duration_days": tour.duration_days,
-            "available_slots": tour.available_slots,
-            "tour_date": str(tour.tour_date) if tour.tour_date else None,
-            "tour_time": str(tour.tour_time) if tour.tour_time else None,
-        })
+        return _with_cors(
+            JsonResponse({
+                "id": tour.id,
+                "name": tour.name,
+                "description": tour.description,
+                "price": str(tour.price),
+                "duration_days": tour.duration_days,
+                "available_slots": tour.available_slots,
+                "tour_date": str(tour.tour_date) if tour.tour_date else None,
+                "tour_time": str(tour.tour_time) if tour.tour_time else None,
+            }),
+            request,
+        )
     
-    if request.method == "PUT" or request.method == "POST":
+    if request.method in ("PUT", "PATCH", "POST"):
         try:
-            data = json.loads(request.body)
-        except:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            data = json.loads(request.body or "{}")
+        except Exception:
+            return _with_cors(JsonResponse({"error": "Invalid JSON"}, status=400), request)
         
         tour.name = data.get("name", tour.name)
         tour.description = data.get("description", tour.description)
@@ -338,23 +388,33 @@ def api_admin_tour_detail(request, tour_id):
         
         tour.save()
         
-        return JsonResponse({
-            "message": "Tour updated successfully",
-            "tour": {
-                "id": tour.id,
-                "name": tour.name,
-                "price": str(tour.price),
-            }
-        })
+        return _with_cors(
+            JsonResponse({
+                "message": "Tour updated successfully",
+                "tour": {
+                    "id": tour.id,
+                    "name": tour.name,
+                    "price": str(tour.price),
+                }
+            }),
+            request,
+        )
+
+    if request.method == "DELETE":
+        tour.delete()
+        return _with_cors(JsonResponse({"message": "Tour deleted successfully"}), request)
     
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)
 
 
 def api_admin_bookings(request):
     """API endpoint to get all bookings (admin view)."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
     user = get_user_from_token(request)
     if not user or not user.is_staff:
-        return JsonResponse({"error": "Admin access required"}, status=403)
+        return _with_cors(JsonResponse({"error": "Admin access required"}, status=403), request)
     
     bookings = Booking.objects.select_related('tour', 'client').all()
     data = []
@@ -373,4 +433,47 @@ def api_admin_bookings(request):
             "travel_date": str(booking.travel_date) if booking.travel_date else None,
             "booking_date": booking.booking_date.isoformat() if booking.booking_date else None,
         })
-    return JsonResponse(data, safe=False)
+    return _with_cors(JsonResponse(data, safe=False), request)
+
+
+def api_admin_booking_detail(request, booking_id):
+    """API endpoint to get/delete booking (admin view)."""
+    if request.method == "OPTIONS":
+        return _with_cors(JsonResponse({}, status=200), request)
+
+    user = get_user_from_token(request)
+    if not user or not user.is_staff:
+        return _with_cors(JsonResponse({"error": "Admin access required"}, status=403), request)
+
+    try:
+        booking = Booking.objects.select_related("tour").get(id=booking_id)
+    except Booking.DoesNotExist:
+        return _with_cors(JsonResponse({"error": "Booking not found"}, status=404), request)
+
+    if request.method == "GET":
+        return _with_cors(
+            JsonResponse({
+                "id": booking.id,
+                "client_name": booking.client_name,
+                "email": booking.email,
+                "phone_number": booking.phone_number,
+                "tour": {
+                    "id": booking.tour.id,
+                    "name": booking.tour.name,
+                    "price": str(booking.tour.price),
+                },
+                "number_of_people": booking.number_of_people,
+                "travel_date": str(booking.travel_date) if booking.travel_date else None,
+                "booking_date": booking.booking_date.isoformat() if booking.booking_date else None,
+            }),
+            request,
+        )
+
+    if request.method == "DELETE":
+        tour = booking.tour
+        tour.available_slots += booking.number_of_people
+        tour.save()
+        booking.delete()
+        return _with_cors(JsonResponse({"message": "Booking deleted successfully"}), request)
+
+    return _with_cors(JsonResponse({"error": "Invalid request"}, status=400), request)

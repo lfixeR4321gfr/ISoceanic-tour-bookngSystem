@@ -1,18 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiUrl } from "../config/api";
-
-function Admin() {
-  const navigate = useNavigate();
-  const [tours, setTours] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [activeTab, setActiveTab] = useState("tours");
-  const [editingTour, setEditingTour] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const [tourForm, setTourForm] = useState({
+function emptyTourForm() {
+  return {
     name: "",
     description: "",
     price: "",
@@ -20,7 +10,33 @@ function Admin() {
     available_slots: "",
     tour_date: "",
     tour_time: "",
-  });
+  };
+}
+
+function formatApiError(errorValue, fallbackMessage) {
+  if (!errorValue) return fallbackMessage;
+  if (typeof errorValue === "string") return errorValue;
+  if (Array.isArray(errorValue)) return errorValue.join(", ");
+  if (typeof errorValue === "object") {
+    return Object.entries(errorValue)
+      .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(", ") : String(value)}`)
+      .join(" | ");
+  }
+  return fallbackMessage;
+}
+
+function Admin() {
+  const navigate = useNavigate();
+  const [tours, setTours] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [editingTourId, setEditingTourId] = useState(null);
+  const [tourForm, setTourForm] = useState(emptyTourForm());
+  const [createForm, setCreateForm] = useState(emptyTourForm());
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -29,324 +45,271 @@ function Admin() {
       return;
     }
     fetchData();
-  }, []);
+  }, [navigate]);
+
+  const authHeaders = (json = false) => {
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Token ${token}` };
+    if (json) headers["Content-Type"] = "application/json";
+    return headers;
+  };
 
   const fetchData = async () => {
     setLoading(true);
-    const token = localStorage.getItem("token");
-    
+    setError("");
     try {
-      const toursRes = await fetch(apiUrl("/api/admin/tours/"), {
-        headers: {
-          "Authorization": `Token ${token}`,
-        },
-      });
-      
+      const [toursRes, bookingsRes] = await Promise.all([
+        fetch(apiUrl("/api/admin/tours/"), { headers: authHeaders() }),
+        fetch(apiUrl("/api/admin/bookings/"), { headers: authHeaders() }),
+      ]);
+
       if (!toursRes.ok) {
         throw new Error("Admin access required");
       }
-      
       const toursData = await toursRes.json();
-      setTours(toursData);
+      setTours(Array.isArray(toursData) ? toursData : []);
 
-      const bookingsRes = await fetch(apiUrl("/api/admin/bookings/"), {
-        headers: {
-          "Authorization": `Token ${token}`,
-        },
-      });
-      
       if (bookingsRes.ok) {
         const bookingsData = await bookingsRes.json();
-        setBookings(bookingsData);
+        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to load admin data");
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
-  const handleEditTour = (tour) => {
-    setEditingTour(tour.id);
+  const clearMessages = () => {
+    setError("");
+    setSuccess("");
+  };
+
+  const handleCreateTour = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    setActionLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/admin/tours/"), {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify(createForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data.error, "Failed to create tour"));
+      setSuccess("Tour created successfully");
+      setCreateForm(emptyTourForm());
+      await fetchData();
+    } catch (err) {
+      setError(err.message || "Failed to create tour");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const startEditTour = (tour) => {
+    setEditingTourId(tour.id);
     setTourForm({
-      name: tour.name,
+      name: tour.name || "",
       description: tour.description || "",
-      price: tour.price,
-      duration_days: tour.duration_days,
-      available_slots: tour.available_slots,
+      price: tour.price ?? "",
+      duration_days: tour.duration_days ?? "",
+      available_slots: tour.available_slots ?? "",
       tour_date: tour.tour_date || "",
       tour_time: tour.tour_time || "",
     });
   };
 
-  const handleCancelEdit = () => {
-    setEditingTour(null);
-    setTourForm({
-      name: "",
-      description: "",
-      price: "",
-      duration_days: "",
-      available_slots: "",
-      tour_date: "",
-      tour_time: "",
-    });
+  const cancelEditTour = () => {
+    setEditingTourId(null);
+    setTourForm(emptyTourForm());
   };
 
-  const handleTourChange = (e) => {
-    setTourForm({
-      ...tourForm,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleTourSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setLoading(true);
-
-    const token = localStorage.getItem("token");
-
+  const saveTour = async (tourId) => {
+    clearMessages();
+    setActionLoading(true);
     try {
-      const response = await fetch(
-        apiUrl(`/api/admin/tours/${editingTour}/`),
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Token ${token}`,
-          },
-          body: JSON.stringify(tourForm),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update tour");
-      }
-
-      setSuccess("Tour updated successfully!");
-      setEditingTour(null);
-      fetchData();
+      const res = await fetch(apiUrl(`/api/admin/tours/${tourId}/`), {
+        method: "PUT",
+        headers: authHeaders(true),
+        body: JSON.stringify(tourForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data.error, "Failed to update tour"));
+      setSuccess("Tour updated successfully");
+      cancelEditTour();
+      await fetchData();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to update tour");
+    } finally {
+      setActionLoading(false);
     }
-
-    setLoading(false);
   };
 
-  if (loading && tours.length === 0) {
-    return (
-      <div className="container">
-        <h2>Loading...</h2>
-      </div>
-    );
+  const deleteTour = async (tourId) => {
+    if (!window.confirm("Delete this tour?")) return;
+    clearMessages();
+    setActionLoading(true);
+    try {
+      const res = await fetch(apiUrl(`/api/admin/tours/${tourId}/`), {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data.error, "Failed to delete tour"));
+      setSuccess("Tour deleted successfully");
+      await fetchData();
+    } catch (err) {
+      setError(err.message || "Failed to delete tour");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const deleteBooking = async (bookingId) => {
+    if (!window.confirm("Delete this booking and restore tour slots?")) return;
+    clearMessages();
+    setActionLoading(true);
+    try {
+      const res = await fetch(apiUrl(`/api/admin/bookings/${bookingId}/`), {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(formatApiError(data.error, "Failed to delete booking"));
+      setSuccess("Booking deleted successfully");
+      await fetchData();
+    } catch (err) {
+      setError(err.message || "Failed to delete booking");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="container"><h2>Loading admin dashboard...</h2></div>;
   }
 
   return (
-    <div className="container">
+    <div className="container" style={{ textAlign: "left" }}>
       <h2>Admin Dashboard</h2>
-      
-      {error && <p className="error" style={{color: 'red'}}>{error}</p>}
-      {success && <p style={{color: 'green'}}>{success}</p>}
+      <p style={{ color: "#666" }}>Manage tours and bookings without Django admin.</p>
 
-      <div style={{ marginBottom: '20px' }}>
-        <button 
-          onClick={() => setActiveTab("tours")} 
-          style={{ 
-            marginRight: '10px',
-            padding: '10px 20px',
-            background: activeTab === "tours" ? '#2a5298' : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Manage Tours
-        </button>
-        <button 
-          onClick={() => setActiveTab("bookings")} 
-          style={{ 
-            padding: '10px 20px',
-            background: activeTab === "bookings" ? '#2a5298' : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          View All Bookings
-        </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {success && <p style={{ color: "green" }}>{success}</p>}
+
+      <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+        <button className="btn" onClick={() => setActiveTab("overview")}>Overview</button>
+        <button className="btn" onClick={() => setActiveTab("tours")}>Tours</button>
+        <button className="btn" onClick={() => setActiveTab("bookings")}>Bookings</button>
       </div>
+
+      {activeTab === "overview" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px" }}>
+          <div className="card">
+            <h4>Total Tours</h4>
+            <p style={{ fontSize: "28px", margin: 0 }}>{tours.length}</p>
+          </div>
+          <div className="card">
+            <h4>Total Bookings</h4>
+            <p style={{ fontSize: "28px", margin: 0 }}>{bookings.length}</p>
+          </div>
+          <div className="card">
+            <h4>Open Slots</h4>
+            <p style={{ fontSize: "28px", margin: 0 }}>
+              {tours.reduce((acc, t) => acc + Number(t.available_slots || 0), 0)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {activeTab === "tours" && (
         <div>
-          <h3>All Tours</h3>
-          {tours.length === 0 ? (
-            <p>No tours available.</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {tours.map((tour) => (
-                <div key={tour.id} className="card" style={{ textAlign: 'left' }}>
-                  {editingTour === tour.id ? (
-                    <form onSubmit={handleTourSubmit}>
-                      <div className="form-group">
-                        <label>Tour Name:</label>
-                        <input
-                          type="text"
-                          name="name"
-                          value={tourForm.name}
-                          onChange={handleTourChange}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Description:</label>
-                        <textarea
-                          name="description"
-                          value={tourForm.description}
-                          onChange={handleTourChange}
-                          rows="3"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Price:</label>
-                        <input
-                          type="number"
-                          name="price"
-                          value={tourForm.price}
-                          onChange={handleTourChange}
-                          required
-                          step="0.01"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Duration (days):</label>
-                        <input
-                          type="number"
-                          name="duration_days"
-                          value={tourForm.duration_days}
-                          onChange={handleTourChange}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Available Slots:</label>
-                        <input
-                          type="number"
-                          name="available_slots"
-                          value={tourForm.available_slots}
-                          onChange={handleTourChange}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Tour Date:</label>
-                        <input
-                          type="date"
-                          name="tour_date"
-                          value={tourForm.tour_date}
-                          onChange={handleTourChange}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Tour Time:</label>
-                          <input
-                          type="time"
-                          name="tour_time"
-                          value={tourForm.tour_time}
-                          onChange={handleTourChange}
-                        />
-                      </div>
-                      <button type="submit" className="btn" disabled={loading}>
-                        Save Changes
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={handleCancelEdit}
-                        style={{ 
-                          marginLeft: '10px',
-                          padding: '10px 20px',
-                          background: '#ccc',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </form>
-                  ) : (
-                    <>
-                      <h4>{tour.name}</h4>
-                      <p><strong>Price:</strong> ${tour.price}</p>
-                      <p><strong>Duration:</strong> {tour.duration_days} days</p>
-                      <p><strong>Available Slots:</strong> {tour.available_slots}</p>
-                      <p><strong>Date:</strong> {tour.tour_date}</p>
-                      <p><strong>Time:</strong> {tour.tour_time}</p>
-                      {tour.description && <p>{tour.description}</p>}
-                      <button 
-                        onClick={() => handleEditTour(tour)}
-                        style={{ 
-                          marginTop: '10px',
-                          padding: '8px 16px',
-                          background: '#2a5298',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Edit Tour
-                      </button>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <h3>Create Tour</h3>
+          <form onSubmit={handleCreateTour} className="card" style={{ marginBottom: "20px" }}>
+            <div className="form-group"><label>Name</label><input name="name" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} required /></div>
+            <div className="form-group"><label>Description</label><textarea name="description" value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} rows="3" /></div>
+            <div className="form-group"><label>Price</label><input name="price" type="number" step="0.01" value={createForm.price} onChange={(e) => setCreateForm({ ...createForm, price: e.target.value })} required /></div>
+            <div className="form-group"><label>Duration Days</label><input name="duration_days" type="number" value={createForm.duration_days} onChange={(e) => setCreateForm({ ...createForm, duration_days: e.target.value })} required /></div>
+            <div className="form-group"><label>Available Slots</label><input name="available_slots" type="number" value={createForm.available_slots} onChange={(e) => setCreateForm({ ...createForm, available_slots: e.target.value })} required /></div>
+            <div className="form-group"><label>Tour Date</label><input name="tour_date" type="date" value={createForm.tour_date} onChange={(e) => setCreateForm({ ...createForm, tour_date: e.target.value })} /></div>
+            <div className="form-group"><label>Tour Time</label><input name="tour_time" type="time" value={createForm.tour_time} onChange={(e) => setCreateForm({ ...createForm, tour_time: e.target.value })} /></div>
+            <button className="btn" type="submit" disabled={actionLoading}>Create Tour</button>
+          </form>
+
+          <h3>Manage Tours</h3>
+          <div style={{ display: "grid", gap: "12px" }}>
+            {tours.map((tour) => (
+              <div key={tour.id} className="card">
+                {editingTourId === tour.id ? (
+                  <div>
+                    <div className="form-group"><label>Name</label><input name="name" value={tourForm.name} onChange={(e) => setTourForm({ ...tourForm, name: e.target.value })} /></div>
+                    <div className="form-group"><label>Description</label><textarea name="description" value={tourForm.description} onChange={(e) => setTourForm({ ...tourForm, description: e.target.value })} rows="3" /></div>
+                    <div className="form-group"><label>Price</label><input name="price" type="number" step="0.01" value={tourForm.price} onChange={(e) => setTourForm({ ...tourForm, price: e.target.value })} /></div>
+                    <div className="form-group"><label>Duration Days</label><input name="duration_days" type="number" value={tourForm.duration_days} onChange={(e) => setTourForm({ ...tourForm, duration_days: e.target.value })} /></div>
+                    <div className="form-group"><label>Available Slots</label><input name="available_slots" type="number" value={tourForm.available_slots} onChange={(e) => setTourForm({ ...tourForm, available_slots: e.target.value })} /></div>
+                    <div className="form-group"><label>Tour Date</label><input name="tour_date" type="date" value={tourForm.tour_date || ""} onChange={(e) => setTourForm({ ...tourForm, tour_date: e.target.value })} /></div>
+                    <div className="form-group"><label>Tour Time</label><input name="tour_time" type="time" value={tourForm.tour_time || ""} onChange={(e) => setTourForm({ ...tourForm, tour_time: e.target.value })} /></div>
+                    <button className="btn" onClick={() => saveTour(tour.id)} disabled={actionLoading}>Save</button>
+                    <button className="btn" style={{ marginLeft: "8px", background: "#888" }} onClick={cancelEditTour}>Cancel</button>
+                  </div>
+                ) : (
+                  <div>
+                    <h4 style={{ marginTop: 0 }}>{tour.name}</h4>
+                    <p><strong>Price:</strong> ${tour.price}</p>
+                    <p><strong>Duration:</strong> {tour.duration_days} days</p>
+                    <p><strong>Slots:</strong> {tour.available_slots}</p>
+                    <p><strong>Date:</strong> {tour.tour_date || "N/A"} | <strong>Time:</strong> {tour.tour_time || "N/A"}</p>
+                    <p>{tour.description || "No description"}</p>
+                    <button className="btn" onClick={() => startEditTour(tour)}>Edit</button>
+                    <button className="btn" style={{ marginLeft: "8px", background: "#c0392b" }} onClick={() => deleteTour(tour.id)}>Delete</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {activeTab === "bookings" && (
         <div>
-          <h3>All Bookings</h3>
-          {bookings.length === 0 ? (
-            <p>No bookings available.</p>
-          ) : (
-            <div style={{ marginTop: '20px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#2a5298', color: 'white' }}>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>ID</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Client</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Email</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Phone</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Tour</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>People</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Travel Date</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Booked</th>
+          <h3>Manage Bookings</h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#2a5298", color: "white" }}>
+                  <th style={{ padding: "8px", textAlign: "left" }}>ID</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Client</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Tour</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>People</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Email</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Phone</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Travel Date</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Booked On</th>
+                  <th style={{ padding: "8px", textAlign: "left" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((booking) => (
+                  <tr key={booking.id} style={{ borderBottom: "1px solid #ddd" }}>
+                    <td style={{ padding: "8px" }}>#{booking.id}</td>
+                    <td style={{ padding: "8px" }}>{booking.client_name}</td>
+                    <td style={{ padding: "8px" }}>{booking.tour?.name || "N/A"}</td>
+                    <td style={{ padding: "8px" }}>{booking.number_of_people}</td>
+                    <td style={{ padding: "8px" }}>{booking.email}</td>
+                    <td style={{ padding: "8px" }}>{booking.phone_number}</td>
+                    <td style={{ padding: "8px" }}>{booking.travel_date || "N/A"}</td>
+                    <td style={{ padding: "8px" }}>{booking.booking_date ? new Date(booking.booking_date).toLocaleString() : "N/A"}</td>
+                    <td style={{ padding: "8px" }}>
+                      <button className="btn" style={{ background: "#c0392b" }} onClick={() => deleteBooking(booking.id)}>
+                        Delete
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {bookings.map((booking) => (
-                    <tr key={booking.id} style={{ borderBottom: '1px solid #ddd' }}>
-                      <td style={{ padding: '10px' }}>#{booking.id}</td>
-                      <td style={{ padding: '10px' }}>{booking.client_name}</td>
-                      <td style={{ padding: '10px' }}>{booking.email}</td>
-                      <td style={{ padding: '10px' }}>{booking.phone_number}</td>
-                      <td style={{ padding: '10px' }}>{booking.tour.name}</td>
-                      <td style={{ padding: '10px' }}>{booking.number_of_people}</td>
-                      <td style={{ padding: '10px' }}>{booking.travel_date || "N/A"}</td>
-                      <td style={{ padding: '10px' }}>{booking.booking_date ? new Date(booking.booking_date).toLocaleDateString() : "N/A"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
