@@ -18,6 +18,6 @@ services:
       - key: DEBUG
         value: "False"
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://i-soceanic-tour-bookng-system-j3sh.vercel.app"
+        value: "https://i-soceanic-tour-bookng-system-j3sh.vercel.app,https://i-soceanic-tour-bookng-system-ippa.vercel.app"
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://i-soceanic-tour-bookng-system-j3sh.vercel.app"
+        value: "https://i-soceanic-tour-bookng-system-j3sh.vercel.app,https://i-soceanic-tour-bookng-system-ippa.vercel.app"
