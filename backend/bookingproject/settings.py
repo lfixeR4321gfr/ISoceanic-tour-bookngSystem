@@ -112,8 +112,11 @@ WSGI_APPLICATION = 'bookingproject.wsgi.application'
 
 
 
-# Use DATABASE_URL when provided (Render PostgreSQL), fallback to local SQLite.
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# Use DATABASE_URL when provided. Default to Neon connection string.
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://neondb_owner:npg_diuIcj5sQUK4@ep-dark-paper-ai96zdr6-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+)
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True),
