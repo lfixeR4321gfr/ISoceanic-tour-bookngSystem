@@ -38,10 +38,15 @@ function Login() {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
-        setError(data.error || "Login failed");
+        setError(data.error || `Login failed (${response.status})`);
         return;
       }
 
@@ -60,7 +65,7 @@ function Login() {
       navigate("/tours");
 
     } catch (err) {
-      setError("Server error. Try again.");
+      setError(`Server error: ${err.message || "Try again."}`);
     }
   };
 
