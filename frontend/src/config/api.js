@@ -4,7 +4,7 @@ const isLocalHost =
 
 const rawBaseUrl =
   import.meta.env.VITE_API_BASE_URL ||
-  (isLocalHost ? "http://127.0.0.1:8000" : "https://bookingproject.onrender.com");
+  (isLocalHost ? "http://127.0.0.1:8000" : "https://bookingproject-d57t.onrender.com");
 
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
 
