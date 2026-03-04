@@ -190,7 +190,7 @@ CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", True)
 
 if not CORS_ALLOW_ALL_ORIGINS:
     default_frontend_origins = (
-        "https://i-soceanic-tour-bookng-system-j3sh.vercel.app,"
+        "https://i-soceanic-tour-bookng-system-bcnr.vercel.app,"
         "https://i-soceanic-tour-bookng-system-ippa.vercel.app"
     )
     CORS_ALLOWED_ORIGINS = [
