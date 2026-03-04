@@ -1,5 +1,3 @@
-import { apiUrl } from "../config/api";
-
 function Home() {
   return (
     <div className="container" style={{ backgroundColor: '#c99cb6', minHeight: '100vh' }}>
@@ -9,7 +7,7 @@ function Home() {
       <div style={styles.imageContainer}>
         <div style={styles.imageWrapper}>
           <img 
-            src={apiUrl("/static/core/images/beach.jpg")} 
+            src="/images/beach.jpg" 
             alt="Beach" 
             style={styles.image}
           />
@@ -17,7 +15,7 @@ function Home() {
         </div>
         <div style={styles.imageWrapper}>
           <img 
-            src={apiUrl("/static/core/images/boat.jpg")} 
+            src="/images/boat.jpg" 
             alt="Boat" 
             style={styles.image}
           />
@@ -25,7 +23,7 @@ function Home() {
         </div>
         <div style={styles.imageWrapper}>
           <img 
-            src={apiUrl("/static/core/images/sunset.jpg")} 
+            src="/images/sunset.jpg" 
             alt="Sunset" 
             style={styles.image}
           />

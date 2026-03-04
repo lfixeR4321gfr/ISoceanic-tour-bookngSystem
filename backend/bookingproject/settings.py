@@ -176,11 +176,12 @@ STORAGES = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# CORS: strict in production, open in local debug.
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOW_ALL_ORIGINS = False
+# CORS/CSRF:
+# For this token-based API deployment, keep CORS permissive by default in production
+# so changing Vercel preview URLs do not break auth flows.
+CORS_ALLOW_ALL_ORIGINS = os.environ.get("CORS_ALLOW_ALL_ORIGINS", "True") == "True"
+
+if not CORS_ALLOW_ALL_ORIGINS:
     default_frontend_origins = (
         "https://i-soceanic-tour-bookng-system-j3sh.vercel.app,"
         "https://i-soceanic-tour-bookng-system-ippa.vercel.app"
@@ -191,11 +192,12 @@ else:
         if origin.strip()
     ]
     CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.vercel\.app$"]
-    CSRF_TRUSTED_ORIGINS = [
-        origin.strip()
-        for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
-        if origin.strip()
-    ]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 
 # HTTPS/security settings for production deployments.
 if not DEBUG:
